@@ -9,6 +9,8 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
@@ -19,12 +21,17 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     ListView mListView;
     AppAdapter mAppAdapter;
+    private boolean mNeedRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,17 +59,45 @@ public class MainActivity extends AppCompatActivity {
                     Intent intent = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + appInfo.pkg));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
+                    mNeedRefresh = true;
                 } catch (Throwable e) {
                     Toast.makeText(this, "delete fail", Toast.LENGTH_SHORT).show();
                 }
             }
             return true;
         });
+        loadApps();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (mNeedRefresh) {
+            loadApps();
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        super.onCreateOptionsMenu(menu);
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_refresh:
+                loadApps();
+                break;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void loadApps() {
+        mNeedRefresh = false;
         ProgressDialog dialog = ProgressDialog.show(this, null, "loading app list");
         VUiKit.defer().when(() -> {
             List<AppInfo> appInfos = new ArrayList<>();
@@ -76,14 +111,19 @@ public class MainActivity extends AppCompatActivity {
                     if (pm.getLaunchIntentForPackage(packageInfo.packageName) == null) {
                         continue;
                     }
+                    if (getPackageName().equals(packageInfo.packageName)) {
+                        continue;
+                    }
                     AppInfo appInfo = new AppInfo();
                     appInfo.pkg = packageInfo.packageName;
-                    appInfo.version = packageInfo.versionName;
+                    appInfo.version = packageInfo.versionName + "   (" + packageInfo.versionCode + ")";
                     appInfo.label = String.valueOf(pm.getApplicationLabel(packageInfo.applicationInfo));
                     appInfo.icon = pm.getApplicationIcon(packageInfo.applicationInfo);
                     appInfos.add(appInfo);
                 }
             }
+            Collator collator = Collator.getInstance(Locale.CHINA);
+            Collections.sort(appInfos, (o1, o2) -> collator.compare(o1.getLabel(), o2.getLabel()));
             return appInfos;
         }).fail((e) -> {
             dialog.dismiss();
@@ -99,6 +139,11 @@ public class MainActivity extends AppCompatActivity {
         String label;
         String version;
         String pkg;
+
+        public String getLabel() {
+            if (label == null) return "";
+            return label;
+        }
     }
 
     private class ViewHolder {
@@ -152,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
                 viewHolder = (ViewHolder) convertView.getTag();
             }
             AppInfo appInfo = getItem(position);
-            viewHolder.label.setText(appInfo.label);
+            viewHolder.label.setText(appInfo.getLabel());
             viewHolder.icon.setImageDrawable(appInfo.icon);
             viewHolder.version.setText(appInfo.version);
             viewHolder.pkg.setText(appInfo.pkg);
