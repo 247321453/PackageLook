@@ -1,37 +1,44 @@
 package com.example.demo;
 
 import android.app.ProgressDialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnLongClickListener;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.demo.tool.VUiKit;
+import com.kk.jnis.JniTest;
+
+import java.io.File;
+import java.io.FileOutputStream;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     ListView mListView;
     AppAdapter mAppAdapter;
-    private boolean mNeedRefresh;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
                 } catch (Throwable e) {
-                    Toast.makeText(this, "no find market", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, R.string.no_find_market, Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -59,23 +66,62 @@ public class MainActivity extends AppCompatActivity {
                     Intent intent = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + appInfo.pkg));
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(intent);
-                    mNeedRefresh = true;
                 } catch (Throwable e) {
-                    Toast.makeText(this, "delete fail", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, R.string.delete_pkg_fail, Toast.LENGTH_SHORT).show();
                 }
             }
             return true;
         });
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_PACKAGE_ADDED);
+        filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        filter.addDataScheme("package");
+        registerReceiver(mPackageReceiver, filter);
         loadApps();
+
+        /*
+        try {
+            File file = new File("/data/data/" + getPackageName() + "/test.txt");
+            if (file.exists()) {
+                file.delete();
+            }
+            FileOutputStream outputStream = new FileOutputStream(file);
+            outputStream.write("hello".getBytes());
+            outputStream.close();
+        } catch (Throwable e) {
+            Log.e("kk", "java file", e);
+        }
+
+        try {
+            SQLiteDatabase db = SQLiteDatabase.openOrCreateDatabase("/data/data/" + getPackageName() + "/test.db",
+                    null);
+        } catch (Throwable e) {
+            Log.e("kk", "SQLiteDatabase.openOrCreateDatabase", e);
+        }
+        try {
+            String path = "/data/data/" + getPackageName() + "/io.txt";
+            JniTest.writeFile(path, "time=" + new Date(System.currentTimeMillis()));
+            Log.i("kk", "test.txt=" + JniTest.readFile("/data/data/" + getPackageName() + "/test.txt"));
+            Log.i("kk", "io.txt=" + JniTest.readFile(path));
+        } catch (Throwable e) {
+            Log.e("kk", "JniTest", e);
+        }
+        */
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-        if (mNeedRefresh) {
+    protected void onDestroy() {
+        unregisterReceiver(mPackageReceiver);
+        super.onDestroy();
+    }
+
+    private BroadcastReceiver mPackageReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
             loadApps();
         }
-    }
+    };
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -97,8 +143,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadApps() {
-        mNeedRefresh = false;
-        ProgressDialog dialog = ProgressDialog.show(this, null, "loading app list");
+        ProgressDialog dialog = ProgressDialog.show(this, null, getString(R.string.loading_app));
         VUiKit.defer().when(() -> {
             List<AppInfo> appInfos = new ArrayList<>();
             PackageManager pm = getPackageManager();
