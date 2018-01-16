@@ -23,10 +23,6 @@
 -keep class * implements com.bumptech.glide.module.GlideModule{
     *;
 }
--keep class android.support.**{
-    public *;
-    protected *;
-}
 -keepattributes *Annotation*,InnerClasses
 -keepattributes Signature
 -keepattributes SourceFile,LineNumberTable
