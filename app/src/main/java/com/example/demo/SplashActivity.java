@@ -1,19 +1,34 @@
 package com.example.demo;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
-public class SplashActivity extends AppCompatActivity {
+import com.example.demo.tool.VUiKit;
 
+import java.util.Random;
+
+public class SplashActivity extends Activity {
+
+    private static final Random sRandom = new Random(System.currentTimeMillis());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
+        final long time = 1000 + sRandom.nextInt(1000);
+        VUiKit.defer().when(() -> {
+            try {
+                Thread.sleep(time);
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        }).done((rs) -> {
+            startActivity(new Intent(this, HomeActivity.class));
+            finish();
+        });
 
-        startActivity(new Intent(this, HomeActivity.class));
-        finish();
         /*
         try {
             File file = new File("/data/data/" + getPackageName() + "/test.txt");
