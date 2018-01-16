@@ -3,4 +3,12 @@
     <string name="loading_app">加载应用列表</string>
     <string name="no_find_market">找不到应用市场</string>
     <string name="delete_pkg_fail">卸载失败</string>
+    <string name="title_activity_home">应用列表</string>
+    <string name="title_app_list">全部应用</string>
+    <string name="title_love_app">关注应用</string>
+    <string name="title_hide_app">隐藏应用</string>
+    <string name="error_start_app_fail">启动失败</string>
+    <string name="back_fail" formatted="false">备份 %s 失败:</string>
+    <string name="back_ok">备份成功</string>
+    <string name="tip_start_backup">开始备份</string>
 </resources>

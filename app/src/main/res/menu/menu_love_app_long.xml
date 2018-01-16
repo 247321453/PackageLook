@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/action_launch"
+        android:title="启动应用" />
+    <!--<item
+        android:id="@+id/action_mainfest"
+        android:title="查看清单" />-->
+    <item
+        android:id="@+id/action_market"
+        android:title="应用市场" />
+    <item
+        android:id="@+id/action_detail"
+        android:title="应用详情" />
+    <item
+        android:id="@+id/action_backup"
+        android:title="备份安装包" />
+    <item
+        android:id="@+id/action_cancel_love"
+        android:title="取消关注" />
+
+</menu>
