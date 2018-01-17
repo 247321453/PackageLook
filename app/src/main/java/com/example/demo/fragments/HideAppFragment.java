@@ -41,6 +41,8 @@ public class HideAppFragment extends BaseFragment {
     ListView mListView;
     AppAdapter mAppAdapter;
 
+    private boolean mNeedRefresh = true;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -71,19 +73,24 @@ public class HideAppFragment extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
-        loadApps();
+        if (mNeedRefresh) {
+            mNeedRefresh = false;
+            loadApps();
+        }
     }
 
     @Override
     public void onStart() {
         super.onStart();
         IntentFilter filter = new IntentFilter();
-        filter.addDataScheme("package");
-        filter.addAction(GlobalSettings.ACTION_HIDE_APP_CHANGED);
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        filter.addDataScheme("package");
         getContext().registerReceiver(mReceiver, filter);
+        IntentFilter filter2 = new IntentFilter();
+        filter2.addAction(GlobalSettings.ACTION_HIDE_APP_CHANGED);
+        getContext().registerReceiver(mReceiver, filter2);
     }
 
     @Override
@@ -97,6 +104,8 @@ public class HideAppFragment extends BaseFragment {
         public void onReceive(Context context, Intent intent) {
             if (!isPausing()) {
                 loadApps();
+            } else {
+                mNeedRefresh = true;
             }
         }
     };
