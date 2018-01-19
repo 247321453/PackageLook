@@ -53,7 +53,7 @@ public class GlobalSettings {
     }
 
     public List<String> getHideList() {
-        return mHide;
+        return new ArrayList<>(mHide);
     }
 
     public boolean isLove(String pkg) {

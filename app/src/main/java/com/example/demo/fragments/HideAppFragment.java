@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -42,6 +43,7 @@ public class HideAppFragment extends BaseFragment {
     AppAdapter mAppAdapter;
 
     private boolean mNeedRefresh = true;
+    private boolean mInit = false;
 
     @Nullable
     @Override
@@ -67,6 +69,7 @@ public class HideAppFragment extends BaseFragment {
             }
             return true;
         });
+        mInit = true;
         return view;
     }
 
@@ -80,33 +83,39 @@ public class HideAppFragment extends BaseFragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onAttach(Context context) {
+        super.onAttach(context);
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
         filter.addDataScheme("package");
         getContext().registerReceiver(mReceiver, filter);
-        IntentFilter filter2 = new IntentFilter();
-        filter2.addAction(GlobalSettings.ACTION_HIDE_APP_CHANGED);
-        getContext().registerReceiver(mReceiver, filter2);
+        getContext().registerReceiver(mReceiver, new IntentFilter(GlobalSettings.ACTION_HIDE_APP_CHANGED));
     }
 
     @Override
-    public void onStop() {
+    public void onDetach() {
         getContext().unregisterReceiver(mReceiver);
-        super.onStop();
+        super.onDetach();
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if (getUserVisibleHint()) {
+            if (mNeedRefresh && mInit) {
+                mNeedRefresh = false;
+                loadApps();
+            }
+        }
     }
 
     BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (!isPausing()) {
-                loadApps();
-            } else {
-                mNeedRefresh = true;
-            }
+//            loadApps();
+            mNeedRefresh = true;
         }
     };
 
@@ -204,12 +213,15 @@ public class HideAppFragment extends BaseFragment {
             List<AppInfo> appInfos = new ArrayList<>();
             List<String> pkgs = GlobalSettings.get().getHideList();
             PackageManager pm = getContext().getPackageManager();
+            boolean save = false;
             for (String pkg : pkgs) {
                 PackageInfo packageInfo = null;
                 try {
                     packageInfo = pm.getPackageInfo(pkg, 0);
                 } catch (Throwable e) {
                     //ignore
+                    save = true;
+                    GlobalSettings.get().removeHide(pkg);
                 }
                 if (packageInfo == null) {
                     continue;
@@ -224,9 +236,13 @@ public class HideAppFragment extends BaseFragment {
             }
             Collator collator = Collator.getInstance(Locale.CHINA);
             Collections.sort(appInfos, (o1, o2) -> collator.compare(o1.getLabel(), o2.getLabel()));
+            if (save) {
+                GlobalSettings.get().saveHide();
+            }
             return appInfos;
         }).fail((e) -> {
             dialog.dismiss();
+            Log.e("kk", "load hide app", e);
         }).done((list) -> {
             dialog.dismiss();
             mAppAdapter.setAll(list);

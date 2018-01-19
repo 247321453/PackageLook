@@ -43,6 +43,7 @@ public class AppListFragment extends BaseFragment {
     AppAdapter mAppAdapter;
 
     private boolean mNeedRefresh = true;
+    private boolean mInit = false;
 
     @Nullable
     @Override
@@ -68,7 +69,19 @@ public class AppListFragment extends BaseFragment {
             }
             return true;
         });
+        mInit = true;
         return view;
+    }
+
+    @Override
+    public void setUserVisibleHint(boolean isVisibleToUser) {
+        super.setUserVisibleHint(isVisibleToUser);
+        if (getUserVisibleHint()) {
+            if (mNeedRefresh && mInit) {
+                mNeedRefresh = false;
+                loadApps();
+            }
+        }
     }
 
     @Override
@@ -81,33 +94,28 @@ public class AppListFragment extends BaseFragment {
     }
 
     @Override
-    public void onStart() {
-        super.onStart();
+    public void onAttach(Context context) {
+        super.onAttach(context);
         IntentFilter filter = new IntentFilter();
         filter.addAction(Intent.ACTION_PACKAGE_ADDED);
         filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
         filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
         filter.addDataScheme("package");
         getContext().registerReceiver(mReceiver, filter);
-        IntentFilter filter2 = new IntentFilter();
-        filter2.addAction(GlobalSettings.ACTION_SHOW_APP_CHANGED);
-        getContext().registerReceiver(mReceiver, filter2);
+        getContext().registerReceiver(mReceiver, new IntentFilter(GlobalSettings.ACTION_SHOW_APP_CHANGED));
     }
 
     @Override
-    public void onStop() {
+    public void onDetach() {
         getContext().unregisterReceiver(mReceiver);
-        super.onStop();
+        super.onDetach();
     }
 
     BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (!isPausing()) {
-                loadApps();
-            } else {
-                mNeedRefresh = true;
-            }
+            mNeedRefresh = true;
+//            loadApps();
         }
     };
 
